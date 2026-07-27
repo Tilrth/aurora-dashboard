@@ -172,6 +172,28 @@ const Cal = {
       this.token = saved.token;
       this.renderConnectState();
       this.loadEvents();
+    } else if (this.hasClientId()) {
+      // Token abgelaufen → stille Neu-Verbindung im Hintergrund versuchen
+      this.trySilentRefresh();
     }
+  },
+
+  // Stille Neu-Anmeldung: funktioniert, wenn der Nutzer früher schon mal
+  // zugestimmt hat — kein Klick, kein Popup nötig.
+  trySilentRefresh() {
+    const attempt = () => {
+      if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+        setTimeout(attempt, 500); // GIS-Script lädt noch
+        return;
+      }
+      this.initTokenClient();
+      if (!this.tokenClient) return;
+      try {
+        this.tokenClient.requestAccessToken({ prompt: '' });
+      } catch (e) {
+        console.log('Stille Anmeldung nicht möglich — bitte einmal manuell verbinden.');
+      }
+    };
+    setTimeout(attempt, 1200);
   }
 };
