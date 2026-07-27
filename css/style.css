@@ -1,4 +1,4 @@
-/* ═══════════ AURORA — Morning Dashboard ═══════════ */
+//* ═══════════ AURORA — Morning Dashboard ═══════════ */
 :root {
   --bg: #0b0d12;
   --bg2: #11141c;
@@ -183,6 +183,15 @@ a.news-item:hover { border-color: var(--accent); transform: translateX(3px); }
 }
 .src-tag.heise { background: rgba(255,150,60,.12); color: #ff9b45; }
 .src-tag.tp { background: rgba(180,120,255,.12); color: #b478ff; }
+.src-tag.hb { background: rgba(255,92,108,.12); color: #ff5c6c; }
+
+/* Light Mode: Tags & Meta-Text kräftiger, damit sie nicht ausbleichen */
+[data-theme="light"] { --text2: #525c70; }
+[data-theme="light"] .src-tag { background: rgba(59,107,239,.15); color: #2b4fd6; }
+[data-theme="light"] .src-tag.heise { background: rgba(220,110,20,.16); color: #b85a00; }
+[data-theme="light"] .src-tag.tp { background: rgba(140,80,220,.14); color: #7a3fd4; }
+[data-theme="light"] .src-tag.hb { background: rgba(214,48,74,.12); color: #c22445; }
+[data-theme="light"] .cat-tag { background: #dde2ec; color: #46516a; }
 .cat-tag { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: var(--bg2); color: var(--text2); }
 .news-item h3 { font-size: 15px; font-weight: 600; line-height: 1.4; }
 .news-item .teaser { font-size: 13px; color: var(--text2); margin-top: 5px; line-height: 1.5; }
@@ -227,18 +236,11 @@ a.news-item:hover { border-color: var(--accent); transform: translateX(3px); }
 
 /* ─── TradingView Boxen ─── */
 .tv-box { min-height: 220px; }
-.tv-box.chart { height: 520px; }
+.tv-box.small { height: 300px; }
 .tv-box.tall { min-height: 340px; }
 
 /* ─── Watchlist-Controls ─── */
-.wl-symbols {
-  display: flex; gap: 6px; flex-wrap: wrap;
-  margin-bottom: 14px;
-}
 
-@media (max-width: 900px) {
-  .tv-box.chart { height: 380px; }
-}
 
 /* ─── ForexFactory Kalender ─── */
 .ff-day { margin-bottom: 14px; }
