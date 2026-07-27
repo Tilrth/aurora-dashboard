@@ -1,6 +1,7 @@
 /* ═══════════ KI-Briefing (Google Gemini, kostenlos) ═══════════ */
 const Briefing = {
-  MODEL: 'gemini-2.0-flash',
+  MODEL: 'gemini-2.5-flash',
+  FALLBACK_MODEL: 'gemini-2.5-flash-lite', // großzügigeres Free-Tier-Limit
 
   hasKey() { return !!State.get('gemini'); },
 
@@ -36,6 +37,26 @@ ${news || '(keine News geladen)'}
 Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften der 4 Abschnitte, keine weiteren Markdown-Listen außer den Termin-Stichpunkten.`;
   },
 
+  async callApi(model) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${State.get('gemini')}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: this.buildPrompt() }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
+        })
+      });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.error?.message || 'API-Fehler ' + res.status);
+      err.status = res.status;
+      throw err;
+    }
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  },
+
   async generate() {
     const out = document.getElementById('ai-output');
     if (!this.hasKey()) {
@@ -45,22 +66,17 @@ Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften 
     }
     out.innerHTML = '<div class="ai-loading"><div class="spinner"></div> Dein Briefing wird erstellt …</div>';
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${this.MODEL}:generateContent?key=${State.get('gemini')}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: this.buildPrompt() }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
-          })
-        });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || 'API-Fehler ' + res.status);
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      let text;
+      try {
+        text = await this.callApi(this.MODEL);
+      } catch (e) {
+        // Quota erreicht (429) → automatisch auf Flash-Lite ausweichen
+        if (e.status === 429) text = await this.callApi(this.FALLBACK_MODEL);
+        else throw e;
+      }
       out.innerHTML = this.mdToHtml(text);
     } catch (e) {
-      out.innerHTML = `<p class="muted">Fehler beim Briefing: ${News.esc(e.message)}<br>Prüfe deinen API-Key in den Einstellungen oder dein kostenloses Kontingent.</p>`;
+      out.innerHTML = `<p class="muted">Fehler beim Briefing: ${News.esc(e.message)}<br>Prüfe deinen API-Key in den Einstellungen oder dein kostenloses Tageskontingent (setzt sich nachts zurück).</p>`;
     }
   },
 
