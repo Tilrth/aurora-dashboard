@@ -1,10 +1,15 @@
 /* ═══════════ News: Heise + Telepolis via RSS ═══════════ */
 const News = {
   feeds: [
-    // Heise online News als Basis: IT + Wirtschaft (per Keywords erkannt)
-    { url: 'https://www.heise.de/rss/heise-atom.xml',   src: 'Heise',     cat: 'tech' },
+    // Heise online News als Basis: IT + Wirtschaft + KI (per Keywords erkannt)
+    { url: 'https://www.heise.de/rss/heise-atom.xml',             src: 'Heise',       cat: 'tech' },
     // Telepolis für Politik
-    { url: 'https://www.heise.de/tp/rss/news-atom.xml', src: 'Telepolis', cat: 'politik' },
+    { url: 'https://www.heise.de/tp/rss/news-atom.xml',           src: 'Telepolis',   cat: 'politik' },
+    // Tagesschau: kuratierte Top-Meldungen (Politik) + Wirtschafts-Ressort
+    { url: 'https://www.tagesschau.de/xml/rss2/',                 src: 'Tagesschau',  cat: 'politik', top: true },
+    { url: 'https://www.tagesschau.de/wirtschaft/index~rss2.xml', src: 'Tagesschau',  cat: 'wirtschaft' },
+    // Handelsblatt Schlagzeilen (Wirtschaft)
+    { url: 'https://www.handelsblatt.com/contentexport/feed/schlagzeilen', src: 'Handelsblatt', cat: 'wirtschaft' },
   ],
   // CORS-Proxies (Fallback-Kette) — xml = XML-Rohdaten, json = rss2json-API
   proxies: [
@@ -18,6 +23,22 @@ const News = {
   // Aus Telepolis: reine Wissenschaft/Weltraum-Themen rausfiltern
   skipTpWords: ['weltraum', 'raumfahrt', 'astronom', 'mars-mission', 'exoplanet'],
 
+  // Tagesschau-Top-Feed: Sport/Kultur etc. rausfiltern
+  skipTopWords: [
+    'fussball', 'fußball', 'sport', 'olympia', 'bundesliga', 'champions league',
+    'formel', 'tennis', 'handball', 'biathlon', 'ski', 'tour de france',
+    'film', 'serie', 'musik', 'konzert', 'theater', 'literatur', 'festival',
+    'wetter', 'rezept', 'promi', 'lotto', 'horoskop', 'tatort', 'charts',
+  ],
+
+  // KI-Artikel erkennen (höchste Priorität bei der Einordnung)
+  kiKeywords: [
+    'künstliche intelligenz', ' ki ', 'ki-', ' ki:', 'chatgpt', 'openai',
+    'anthropic', 'claude', 'gemini', 'deepmind', 'sprachmodell', 'llm',
+    'mistral', 'copilot', ' ai ', ' ai-', ' ai:', 'generative', 'midjourney',
+    'maschinelles lernen', 'machine learning', 'ai-act', 'ai act',
+  ],
+
   // Heise-Artikel mit Wirtschaftsbezug → Kategorie Wirtschaft
   wirtschaftKeywords: [
     'börse', 'aktie', 'quartal', 'umsatz', 'gewinn', 'milliard', 'inflation',
@@ -26,15 +47,23 @@ const News = {
   ],
 
   // Pro Kategorie nur die wichtigsten (neuesten) Meldungen
-  // Alle Artikel der Feeds anzeigen (Heise liefert die letzten ~60)
-  caps: { politik: 25, wirtschaft: 25, tech: 30, all: 100 },
+  // Alle Artikel der Feeds anzeigen
+  caps: { politik: 25, wirtschaft: 25, tech: 30, ki: 20, all: 120 },
 
   articles: [],
   activeCat: 'all',
 
   // Gibt die Kategorie zurück — oder null, wenn der Artikel weg soll
   categorize(feed, title, teaser) {
-    const hay = (title + ' ' + teaser).toLowerCase();
+    const hay = (' ' + title + ' ' + teaser + ' ').toLowerCase();
+    // KI hat Vorrang
+    if (this.kiKeywords.some(w => hay.includes(w))) return 'ki';
+    if (feed.top) {
+      // Tagesschau-Top: Sport/Kultur raus, Wirtschaft umkategorisieren, Rest = Politik
+      if (this.skipTopWords.some(w => hay.includes(w))) return null;
+      if (this.wirtschaftKeywords.some(w => hay.includes(w))) return 'wirtschaft';
+      return 'politik';
+    }
     if (feed.cat === 'politik' && this.skipTpWords.some(w => hay.includes(w))) return null;
     // Heise: Wirtschaftsartikel erkennen und umkategorisieren
     if (feed.src === 'Heise' && this.wirtschaftKeywords.some(w => hay.includes(w))) return 'wirtschaft';
@@ -50,9 +79,9 @@ const News = {
           const data = await res.json();
           if (data.status !== 'ok' || !Array.isArray(data.items)) continue;
           return data.items.map(it => ({
-            title: (it.title || '').trim(),
+            title: this.clean(it.title),
             link: it.link || '',
-            teaser: (it.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 220),
+            teaser: this.clean((it.description || '').replace(/<[^>]*>/g, '')).slice(0, 220),
             date: new Date(it.pubDate || Date.now()),
             src: feed.src,
             cat: this.categorize(feed, it.title || '', it.description || ''),
@@ -71,7 +100,8 @@ const News = {
   parse(doc, feed) {
     const items = [];
     const add = (title, link, teaser, date) => {
-      items.push({ title, link, teaser, date, src: feed.src,
+      items.push({ title: this.clean(title), link, teaser: this.clean(teaser),
+                   date, src: feed.src,
                    cat: this.categorize(feed, title, teaser) });
     };
     // RSS
@@ -111,8 +141,11 @@ const News = {
   },
 
   catLabel(cat) {
-    return { politik: 'Politik', wirtschaft: 'Wirtschaft', tech: 'Tech / IT' }[cat] || cat;
+    return { politik: 'Politik', wirtschaft: 'Wirtschaft', tech: 'Tech / IT', ki: 'KI' }[cat] || cat;
   },
+
+  // Handelsblatt markiert Paywall-Artikel mit „+++“ — raus damit
+  clean(s) { return (s || '').replace(/\+\+\+/g, '').trim(); },
 
   fmtDate(d) {
     const now = new Date();
@@ -127,7 +160,7 @@ const News = {
     return `
       <a class="news-item" href="${a.link}" target="_blank" rel="noopener">
         <div class="meta">
-          <span class="src-tag ${a.src === 'Heise' ? 'heise' : 'tp'}">${a.src}</span>
+          <span class="src-tag ${{ Heise: 'heise', Telepolis: 'tp', Handelsblatt: 'hb' }[a.src] || ''}">${a.src}</span>
           <span class="cat-tag">${this.catLabel(a.cat)}</span>
           <span>${this.fmtDate(new Date(a.date))}</span>
         </div>
