@@ -57,6 +57,7 @@ const App = {
     document.getElementById('set-gclient').value = State.get('gclient');
     document.getElementById('set-gemini').value = State.get('gemini');
     document.getElementById('set-obsidian').value = State.get('obsidian');
+    document.getElementById('set-ghtoken').value = State.get('ghtoken');
     document.getElementById('set-autotheme').checked = State.get('autotheme');
     document.getElementById('settings-overlay').classList.remove('hidden');
   },
@@ -67,6 +68,7 @@ const App = {
     State.set('gclient', document.getElementById('set-gclient').value.trim());
     State.set('gemini', document.getElementById('set-gemini').value.trim());
     State.set('obsidian', document.getElementById('set-obsidian').value.trim());
+    State.set('ghtoken', document.getElementById('set-ghtoken').value.trim());
     State.set('autotheme', document.getElementById('set-autotheme').checked);
     State.applyTheme();
     Briefing.init();
