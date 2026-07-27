@@ -175,9 +175,11 @@
 
     <div class="settings-section">
       <h3>Obsidian</h3>
-      <label>GitHub Vault (user/repo/ordner) <span class="muted small">optional, öffentliches Repo</span></label>
-      <input type="text" id="set-obsidian" placeholder="z. B. maxmustermann/vault/Inbox">
-      <p class="muted small">Synchronisiere deine Vault mit dem Plugin „Obsidian Git“ nach GitHub — hier wird sie gelesen.</p>
+      <label>GitHub Vault (user/repo/ordner) <span class="muted small">z. B. tilrth/vault</span></label>
+      <input type="text" id="set-obsidian" placeholder="tilrth/vault">
+      <label>GitHub Token <span class="muted small">(nur nötig bei privatem Repo)</span></label>
+      <input type="password" id="set-ghtoken" placeholder="ghp_...">
+      <p class="muted small">Synchronisiere deine Vault mit dem Plugin „Obsidian Git“ nach GitHub — hier wird sie gelesen. Bleibt alles lokal in deinem Browser.</p>
     </div>
 
     <div class="settings-section">
