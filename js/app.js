@@ -73,7 +73,7 @@ const App = {
 
   /* ─── Märkte erst laden, wenn sichtbar (Scroll) ─── */
   lazyMarkets() {
-    const target = document.getElementById('tv-chart');
+    const target = document.getElementById('tv-watchlist');
     if (!('IntersectionObserver' in window)) { Markets.buildAll(); return; }
     const io = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
