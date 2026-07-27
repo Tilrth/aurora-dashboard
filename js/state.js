@@ -3,8 +3,7 @@ const State = {
   defaults: {
     gclient: '',        // Google OAuth Client ID
     gemini: '',         // Gemini API Key
-    obsidian: '',       // user/repo/pfad
-    ghtoken: '',        // GitHub Personal Access Token (privates Repo)
+
     theme: 'dark',
     autotheme: true,
     googleToken: null,
