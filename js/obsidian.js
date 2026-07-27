@@ -10,19 +10,26 @@ const Obsidian = {
     return { user: parts[0], repo: parts[1], folder: parts.slice(2).join('/') };
   },
 
+  headers() {
+    const t = State.get('ghtoken');
+    return t ? { Authorization: 'Bearer ' + t } : {};
+  },
+
   async load() {
     if (!this.configured()) return;
     const { user, repo, folder } = this.parsePath();
     try {
       const url = `https://api.github.com/repos/${user}/${repo}/contents/${folder}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Repo nicht gefunden (' + res.status + ')');
+      const res = await fetch(url, { headers: this.headers() });
+      if (!res.ok) throw new Error('Repo nicht gefunden (' + res.status + ')' + (!State.get('ghtoken') ? ' — privates Repo? Token in den Einstellungen eintragen.' : ''));
       const files = (await res.json())
         .filter(f => f.name.endsWith('.md'))
         .sort((a, b) => b.name.localeCompare(a.name))
         .slice(0, 8);
       const notes = await Promise.all(files.map(async f => {
-        const raw = await fetch(f.download_url).then(r => r.text());
+        const raw = await fetch(f.url, { headers: this.headers() })
+          .then(r => r.json())
+          .then(d => decodeURIComponent(escape(atob(d.content.replace(/\n/g, '')))));
         return { name: f.name.replace(/\.md$/, ''), content: raw.slice(0, 800) };
       }));
       this.render(notes);
