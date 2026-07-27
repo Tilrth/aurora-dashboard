@@ -8,7 +8,26 @@ const Markets = {
     { s: 'XETR:FLXT', short: 'Taiwan',         d: 'FTSE Taiwan' },
     { s: 'XETR:FLXK', short: 'Korea',          d: 'FTSE Korea' },
   ],
-  activeSymbol: 'XETR:XDEM',
+  /* ─── Watchlist: kompakte Tages-%-Übersicht für alle 5 ETFs ─── */
+  buildWatchlist() {
+    this.embed('tv-watchlist',
+      'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js', {
+        colorTheme: this.theme(),
+        dateRange: '1D',
+        showChart: false,
+        locale: 'de',
+        width: '100%',
+        height: '100%',
+        isTransparent: true,
+        showSymbolLogo: true,
+        showFloatingTooltip: true,
+        tabs: [{
+          title: 'Deine ETFs',
+          symbols: this.symbols.map(x => ({ s: x.s, d: x.d })),
+          originalTitle: 'Deine ETFs'
+        }]
+      });
+  },
 
   theme() {
     return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
@@ -34,60 +53,12 @@ const Markets = {
     box.appendChild(wrap);
   },
 
-  /* ─── Watchlist: Candlestick-Chart mit Symbol- & Zeitraum-Wahl ─── */
-  renderSymbolChips() {
-    const el = document.getElementById('wl-symbols');
-    el.innerHTML = this.symbols.map(x =>
-      `<button class="chip ${x.s === this.activeSymbol ? 'active' : ''}"
-               data-symbol="${x.s}" title="${x.d}">${x.short}</button>`
-    ).join('');
-    el.querySelectorAll('.chip').forEach(c =>
-      c.addEventListener('click', () => {
-        this.activeSymbol = c.dataset.symbol;
-        this.renderSymbolChips();
-        this.buildChart();
-      }));
-  },
-
-  buildChart() {
-    this.embed('tv-chart',
-      'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js', {
-        symbol: this.activeSymbol,
-        interval: 'D',              // immer Tages-Chart
-        timezone: 'Europe/Berlin',
-        theme: this.theme(),
-        style: '1',                 // 1 = Candlesticks
-        locale: 'de',
-        width: '100%',
-        height: '100%',
-        hide_volume: true,          // Volumen-Indikator aus
-        hide_side_toolbar: true,
-        allow_symbol_change: false,
-        details: false,
-        calendar: false,
-        withdateranges: false,
-        support_host: 'https://www.tradingview.com'
-      });
-  },
-
-  initChartControls() {
-    this.renderSymbolChips();
-    // Link zum vollen Chart auf tradingview.com aktualisieren
-    const link = document.getElementById('tv-open');
-    if (link) {
-      const update = () => {
-        link.href = 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(this.activeSymbol);
-      };
-      update();
-      document.getElementById('wl-symbols').addEventListener('click', update);
-    }
-  },
-
   buildEarnings() {
     this.embed('tv-earnings',
       'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js', {
         colorTheme: this.theme(),
-        isTransparent: true,
+        // Dark: transparent (kein Fremdkörper) / Light: opak-weiß (passt zur Karte, Text dunkler)
+        isTransparent: this.theme() === 'dark',
         displayMode: 'regular',
         width: '100%',
         height: '340',
@@ -198,8 +169,7 @@ const Markets = {
   },
 
   buildAll() {
-    this.initChartControls();
-    this.buildChart();
+    this.buildWatchlist();
     this.buildEarnings();
     this.loadFF();
   },
