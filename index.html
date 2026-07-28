@@ -18,7 +18,6 @@
 </head>
 <body>
 
-<!-- ══════════ HEADER ══════════ -->
 <header class="topbar">
   <div class="brand">
     <div class="brand-dot"></div>
@@ -40,25 +39,25 @@
     <p class="date-line" id="date-line"></p>
   </div>
 
-  <!-- ═══ KI-BRIEFING (volle Breite, ganz oben) ═══ -->
+  <!-- ═══ KI-BRIEFING / CHAT ═══ -->
   <div class="card ai-card">
     <div class="card-head"><h2>KI-Briefing</h2></div>
-    <div id="ai-output" class="ai-output">
-      <div class="ai-loading"><div class="spinner"></div> Dein Briefing wird erstellt …</div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Rückfrage stellen …" autocomplete="off">
+      <button class="chat-send" id="chat-send" title="Senden">↑</button>
     </div>
   </div>
 
-  <!-- ═══ LAYOUT: Hauptspalte links / News-Rail rechts ═══ -->
   <div class="layout">
 
     <div class="col-main">
 
       <!-- Termine -->
       <div class="card" id="cal-connect-card">
-        <div class="card-head"><h2>Google Calendar</h2></div>
+        <div class="card-head"><h2>Kalender</h2></div>
         <p class="muted">Verbinde dein Google-Konto, um Termine, Geburtstage und Feiertage zu sehen.</p>
         <button class="btn btn-accent" id="cal-connect">Mit Google verbinden</button>
-        <p class="muted small">Falls der Button nicht reagiert: Google Client ID in den Einstellungen prüfen.</p>
       </div>
 
       <div class="card hidden" id="cal-data-card">
@@ -79,28 +78,32 @@
       <!-- Märkte -->
       <div class="section-head"><h2>Märkte</h2></div>
       <div class="card">
-        <div class="card-head">
-          <h2>Deine Watchlist</h2>
-        </div>
-        <div id="tv-watchlist" class="tv-box small"></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <h2>Wirtschaftskalender</h2>
-          <span class="muted small">ForexFactory · EUR & USD</span>
-        </div>
-        <div id="ff-calendar" class="ff-list">
-          <p class="muted">Wird geladen …</p>
+        <div class="card-head"><h2>Watchlist</h2></div>
+        <div id="watchlist" class="watchlist">
+          <p class="muted">Kurse werden geladen …</p>
         </div>
       </div>
-      <div class="card">
-        <div class="card-head"><h2>Earnings & IPOs</h2></div>
-        <div id="tv-earnings" class="tv-box tall"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h2>Wirtschaftskalender</h2>
+            <span class="muted small">EUR & USD · nur wichtig</span>
+          </div>
+          <div id="ff-calendar" class="ff-list">
+            <p class="muted">Wird geladen …</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Earnings & IPOs</h2></div>
+          <div id="market-news" class="market-news">
+            <p class="muted">Wird geladen …</p>
+          </div>
+        </div>
       </div>
 
     </div>
 
-    <!-- News-Rail rechts -->
+    <!-- News-Rail -->
     <aside class="col-news">
       <div class="section-head">
         <h2>News</h2>
@@ -140,14 +143,12 @@
       <h3>Google Calendar</h3>
       <label>Google Client ID <span class="muted small">(aus Google Cloud Console)</span></label>
       <input type="text" id="set-gclient" placeholder="xxxx.apps.googleusercontent.com">
-      <p class="muted small">Cloud Console → Calendar API aktivieren → OAuth-Client (Web) → deine GitHub-Pages-URL als Authorized JavaScript Origin.</p>
     </div>
 
     <div class="settings-section">
       <h3>KI-Briefing (Gemini)</h3>
       <label>Gemini API-Key <span class="muted small">(kostenlos: aistudio.google.com/apikey)</span></label>
       <input type="password" id="set-gemini" placeholder="AIza...">
-      <p class="muted small">Das passende Modell wird automatisch gewählt.</p>
     </div>
 
     <div class="settings-section">
