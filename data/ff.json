@@ -1,32 +1,50 @@
 {
- "updated": "2026-07-28T09:57:29.794069+00:00",
+ "updated": "2026-07-28T10:49:34.731798+00:00",
  "events": [
   {
-   "title": "Fed Interest Rate Decision",
+   "title": "Federal Funds Rate",
    "currency": "USD",
    "impact": "High",
    "date": "07-29-2026",
-   "forecast": "4.25%",
-   "previous": "4.50%",
-   "utc": "2026-07-29T18:00:00+00:00"
+   "forecast": "3.75%",
+   "previous": "3.75%",
+   "utc": "2026-07-29T22:00:00+00:00"
   },
   {
-   "title": "CPI m/m",
-   "currency": "EUR",
+   "title": "FOMC Statement",
+   "currency": "USD",
    "impact": "High",
-   "date": "07-30-2026",
-   "forecast": "0.3%",
-   "previous": "0.2%",
-   "utc": "2026-07-30T09:00:00+00:00"
-  },
-  {
-   "title": "German Holiday",
-   "currency": "EUR",
-   "impact": "Holiday",
-   "date": "07-31-2026",
+   "date": "07-29-2026",
    "forecast": "",
    "previous": "",
-   "utc": null
+   "utc": "2026-07-29T22:00:00+00:00"
+  },
+  {
+   "title": "FOMC Press Conference",
+   "currency": "USD",
+   "impact": "High",
+   "date": "07-29-2026",
+   "forecast": "",
+   "previous": "",
+   "utc": "2026-07-29T22:30:00+00:00"
+  },
+  {
+   "title": "Advance GDP q/q",
+   "currency": "USD",
+   "impact": "High",
+   "date": "07-30-2026",
+   "forecast": "2.0%",
+   "previous": "2.0%",
+   "utc": "2026-07-30T16:30:00+00:00"
+  },
+  {
+   "title": "Core PCE Price Index m/m",
+   "currency": "USD",
+   "impact": "High",
+   "date": "07-30-2026",
+   "forecast": "0.2%",
+   "previous": "0.3%",
+   "utc": "2026-07-30T16:30:00+00:00"
   }
  ]
 }
