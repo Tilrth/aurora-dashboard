@@ -2,8 +2,8 @@ name: Update Marktdaten
 
 on:
   schedule:
-    # Mo–Fr alle 2 Stunden (UTC), deckt die Xetra-Handelszeiten ab
-    - cron: '0 6,8,10,12,14,16,18,20 * * 1-5'
+    # Alle 15 Minuten, Mo–Fr 6–19 Uhr UTC (= 8–21 Uhr deutsche Sommerzeit)
+    - cron: '*/15 6-19 * * 1-5'
   workflow_dispatch:   # manueller Start im Actions-Tab möglich
 
 permissions:
