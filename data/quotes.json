@@ -1,13 +1,13 @@
 {
- "updated": "2026-07-28T10:49:34.521623+00:00",
+ "updated": "2026-07-28T11:01:14.060726+00:00",
  "source": "yahoo",
  "quotes": [
   {
    "name": "World Momentum",
    "symbol": "XDEM",
-   "price": 82.06,
+   "price": 81.98,
    "currency": "EUR",
-   "change_pct": -4.3
+   "change_pct": -4.4
   },
   {
    "name": "China",
@@ -26,16 +26,16 @@
   {
    "name": "Taiwan",
    "symbol": "FLXT",
-   "price": 54.7,
+   "price": 54.57,
    "currency": "EUR",
-   "change_pct": -7.1
+   "change_pct": -7.32
   },
   {
    "name": "Korea",
    "symbol": "FLXK",
-   "price": 73.39,
+   "price": 73.26,
    "currency": "EUR",
-   "change_pct": -12.32
+   "change_pct": -12.47
   }
  ]
 }
