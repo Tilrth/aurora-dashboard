@@ -48,7 +48,7 @@ const News = {
 
   // Pro Kategorie nur die wichtigsten (neuesten) Meldungen
   // Alle Artikel der Feeds anzeigen
-  caps: { politik: 25, wirtschaft: 25, tech: 30, ki: 20, all: 120 },
+  caps: { politik: 30, wirtschaft: 30, tech: 40, ki: 25, all: 200 },
 
   articles: [],
   activeCat: 'all',
@@ -133,6 +133,8 @@ const News = {
     this.articles = lists.flat()
       .filter(a => a.title && a.link && a.cat)
       .filter(a => !this.ignoreWords.some(w => a.title.toLowerCase().includes(w)))
+      // Bezahl-Inhalte komplett ausschließen (heise+, heise select, Handelsblatt +++)
+      .filter(a => !/heise\+|\+\+\+/i.test(a.title) && !a.link.includes('/select/'))
       .sort((a, b) => b.date - a.date);
     const seen = new Set();
     this.articles = this.articles.filter(a => !seen.has(a.link) && seen.add(a.link));
