@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Holt Kurse (Yahoo/Stooq), ForexFactory-Kalender und Markt-News
-   serverseitig ab und schreibt sie als JSON ins Repo (data/)."""
-import csv, io, json, os, re, urllib.request, urllib.parse, xml.etree.ElementTree as ET
+   serverseitig ab und schreibt sie als JSON ins Repo (data/).
+   Fail-safe: Einzelfehler killen den Job nie — alte Daten bleiben stehen."""
+import csv, io, json, os, re, time, urllib.request, urllib.parse
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -17,10 +19,21 @@ SYMBOLS = [  # (anzeigename, yahoo, stooq)
     ('Korea',           'FLXK.DE', 'flxk.de'),
 ]
 
-def fetch(url, timeout=20):
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read().decode('utf-8', 'replace')
+def fetch(url, timeout=20, retries=2):
+    for i in range(retries + 1):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read().decode('utf-8', 'replace')
+        except Exception as e:
+            if i == retries:
+                raise
+            time.sleep(3)
+
+def write(name, payload):
+    payload['updated'] = datetime.now(timezone.utc).isoformat()
+    path = os.path.join(OUT, name)
+    json.dump(payload, open(path, 'w'), ensure_ascii=False, indent=1)
 
 # ─── 1) Kurse ───
 def quotes_yahoo():
@@ -64,46 +77,52 @@ try:
     src = 'yahoo'
 except Exception as e:
     print('Yahoo fehlgeschlagen:', e)
-    quotes = quotes_stooq()
-    src = 'stooq'
-json.dump({'updated': datetime.now(timezone.utc).isoformat(), 'source': src,
-           'quotes': list(quotes.values())},
-          open(os.path.join(OUT, 'quotes.json'), 'w'), ensure_ascii=False, indent=1)
-print('Kurse OK via', src)
+    try:
+        quotes = quotes_stooq()
+        src = 'stooq'
+    except Exception as e2:
+        print('Stooq fehlgeschlagen:', e2)
+        quotes, src = None, None
+if quotes:
+    write('quotes.json', {'source': src, 'quotes': list(quotes.values())})
+    print('Kurse OK via', src)
+else:
+    print('WARNUNG: Keine Kurse — alte Daten bleiben.')
 
 # ─── 2) ForexFactory Wirtschaftskalender (High + Holiday, EUR & USD) ───
-NY = ZoneInfo('America/New_York')
-xml = fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.xml')
-root = ET.fromstring(xml)
-events = []
-for ev in root.iter('event'):
-    get = lambda t: (ev.findtext(t) or '').strip()
-    if get('impact') not in ('High', 'Holiday'):
-        continue
-    if get('country') not in ('EUR', 'USD'):
-        continue
-    dt_iso = None
-    m = re.match(r'(\d{2})-(\d{2})-(\d{4})', get('date'))
-    t = re.match(r'(\d{1,2}):(\d{2})(am|pm)', get('time'), re.I)
-    if m and t:
-        hh = int(t.group(1)) % 12 + (12 if t.group(3).lower() == 'pm' else 0)
-        dt = datetime(int(m.group(3)), int(m.group(1)), int(m.group(2)),
-                      hh, int(t.group(2)), tzinfo=NY)
-        dt_iso = dt.astimezone(timezone.utc).isoformat()
-    events.append({'title': get('title'), 'currency': get('country'),
-                   'impact': get('impact'), 'date': get('date'),
-                   'forecast': get('forecast'), 'previous': get('previous'),
-                   'utc': dt_iso})
-json.dump({'updated': datetime.now(timezone.utc).isoformat(), 'events': events},
-          open(os.path.join(OUT, 'ff.json'), 'w'), ensure_ascii=False, indent=1)
-print('Kalender OK:', len(events), 'Events')
-
-# ─── 3) Markt-News: Earnings, IPOs, große Bewegungen (Google News RSS) ───
-q = urllib.parse.quote('earnings OR IPO OR "quarterly results" when:2d')
-url = f'https://news.google.com/rss/search?q={q}&hl=de&gl=DE&ceid=DE:de'
 try:
-    feed = fetch(url)
-    root = ET.fromstring(feed)
+    NY = ZoneInfo('America/New_York')
+    xml = fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.xml')
+    root = ET.fromstring(xml)
+    events = []
+    for ev in root.iter('event'):
+        get = lambda t: (ev.findtext(t) or '').strip()
+        if get('impact') not in ('High', 'Holiday'):
+            continue
+        if get('country') not in ('EUR', 'USD'):
+            continue
+        dt_iso = None
+        m = re.match(r'(\d{2})-(\d{2})-(\d{4})', get('date'))
+        t = re.match(r'(\d{1,2}):(\d{2})(am|pm)', get('time'), re.I)
+        if m and t:
+            hh = int(t.group(1)) % 12 + (12 if t.group(3).lower() == 'pm' else 0)
+            dt = datetime(int(m.group(3)), int(m.group(1)), int(m.group(2)),
+                          hh, int(t.group(2)), tzinfo=NY)
+            dt_iso = dt.astimezone(timezone.utc).isoformat()
+        events.append({'title': get('title'), 'currency': get('country'),
+                       'impact': get('impact'), 'date': get('date'),
+                       'forecast': get('forecast'), 'previous': get('previous'),
+                       'utc': dt_iso})
+    write('ff.json', {'events': events})
+    print('Kalender OK:', len(events), 'Events')
+except Exception as e:
+    print('WARNUNG: Kalender fehlgeschlagen — alte Daten bleiben.', e)
+
+# ─── 3) Markt-News: Earnings, IPOs (Google News RSS) ───
+try:
+    q = urllib.parse.quote('earnings OR IPO OR "quarterly results" when:2d')
+    url = f'https://news.google.com/rss/search?q={q}&hl=de&gl=DE&ceid=DE:de'
+    root = ET.fromstring(fetch(url))
     items = []
     for it in root.iter('item'):
         title = re.sub(r'\s*-\s*[^-]+$', '', it.findtext('title') or '').strip()
@@ -113,9 +132,9 @@ try:
                       'date': it.findtext('pubDate') or ''})
         if len(items) >= 14:
             break
+    write('marketnews.json', {'items': items})
+    print('Markt-News OK:', len(items))
 except Exception as e:
-    print('Markt-News fehlgeschlagen:', e)
-    items = []
-json.dump({'updated': datetime.now(timezone.utc).isoformat(), 'items': items},
-          open(os.path.join(OUT, 'marketnews.json'), 'w'), ensure_ascii=False, indent=1)
-print('Markt-News OK:', len(items))
+    print('WARNUNG: Markt-News fehlgeschlagen — alte Daten bleiben.', e)
+
+print('Fertig. Job erfolgreich (Einzelfehler werden ignoriert).')
