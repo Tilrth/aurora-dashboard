@@ -1,0 +1,23 @@
+{
+ "updated": "2026-07-28T09:57:29.794541+00:00",
+ "items": [
+  {
+   "title": "Nvidia übertrifft Erwartungen im Quartal deutlich",
+   "link": "https://example.com/1",
+   "source": "Reuters",
+   "date": "Mon, 27 Jul 2026 18:00:00 GMT"
+  },
+  {
+   "title": "IPO-Boom: Deutscher Tech-Konzern plant Börsengang",
+   "link": "https://example.com/2",
+   "source": "Handelsblatt",
+   "date": "Mon, 27 Jul 2026 15:30:00 GMT"
+  },
+  {
+   "title": "Apple meldet Rekordquartal, Aktie springt an",
+   "link": "https://example.com/3",
+   "source": "CNBC",
+   "date": "Mon, 27 Jul 2026 12:00:00 GMT"
+  }
+ ]
+}
