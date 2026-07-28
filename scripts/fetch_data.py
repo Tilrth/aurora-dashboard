@@ -72,7 +72,7 @@ json.dump({'updated': datetime.now(timezone.utc).isoformat(), 'source': src,
 print('Kurse OK via', src)
 
 # ─── 2) ForexFactory Wirtschaftskalender (High + Holiday, EUR & USD) ───
-ET = ZoneInfo('America/New_York')
+NY = ZoneInfo('America/New_York')
 xml = fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.xml')
 root = ET.fromstring(xml)
 events = []
@@ -88,7 +88,7 @@ for ev in root.iter('event'):
     if m and t:
         hh = int(t.group(1)) % 12 + (12 if t.group(3).lower() == 'pm' else 0)
         dt = datetime(int(m.group(3)), int(m.group(1)), int(m.group(2)),
-                      hh, int(t.group(2)), tzinfo=ET)
+                      hh, int(t.group(2)), tzinfo=NY)
         dt_iso = dt.astimezone(timezone.utc).isoformat()
     events.append({'title': get('title'), 'currency': get('country'),
                    'impact': get('impact'), 'date': get('date'),
