@@ -210,5 +210,4 @@ const Cal = {
     } else if (this.hasClientId()) {
       this.trySilentRefresh();
     }
-  }
-};
+  
