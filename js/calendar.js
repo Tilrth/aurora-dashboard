@@ -147,7 +147,7 @@ const Cal = {
     const el = document.getElementById('cal-events');
     const evts = this.eventsForView();
     if (!evts.length) {
-      const msg = { day: 'Heute steht nichts an — freier Tag! 🎉',
+      const msg = { day: 'Heute keine Termine.',
                     week: 'Diese Woche keine Termine.',
                     month: 'Diesen Monat keine Termine.' }[this.viewMode];
       el.innerHTML = `<p class="muted">${msg}</p>`;
