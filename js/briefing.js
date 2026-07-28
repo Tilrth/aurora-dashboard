@@ -1,18 +1,19 @@
-/* ═══════════ KI-Briefing (Google Gemini, kostenlos) ═══════════
-   Modell-Auswahl: fragt die verfügbaren Modelle bei Google ab und
-   nimmt automatisch das neueste sinnvolle Flash-Modell.          */
+/* ═══════════ KI-Briefing als Chat (Google Gemini, kostenlos) ═══════════
+   - Startet automatisch beim Laden der Seite
+   - Rückfragen möglich: kompletter Verlauf wird mitgeschickt
+   - Modell wird automatisch gewählt (neuestes verfügbares Flash)      */
 const Briefing = {
-  // Harte Fallback-Kette, falls die Modell-Liste nicht abrufbar ist
   STATIC_MODELS: [
     'gemini-3-flash-preview',
     'gemini-2.5-flash',
     'gemini-2.5-flash-lite',
     'gemini-2.0-flash',
   ],
+  history: [],   // [{role:'user'|'model', text}]
+  busy: false,
 
   hasKey() { return !!State.get('gemini'); },
 
-  // Verfügbare Modelle abfragen und beste Kandidaten sortiert zurückgeben
   async resolveModels() {
     const key = State.get('gemini');
     try {
@@ -24,7 +25,6 @@ const Briefing = {
         .map(m => m.name.replace('models/', ''))
         .filter(n => /^gemini-/.test(n) && /flash/.test(n) && !/image|tts|robotics|computer-use/.test(n));
       if (!usable.length) throw new Error('keine Flash-Modelle');
-      // Sortierung: höchste Versionsnummer zuerst; stabil vor Preview; voll vor lite
       const score = n => {
         const v = parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [0, 0])[1]);
         let s = v * 1000;
@@ -33,7 +33,6 @@ const Briefing = {
         return s;
       };
       usable.sort((a, b) => score(b) - score(a));
-      // gecachtes Erfolgsmodell nach vorne ziehen
       const cached = State.get('geminiModel');
       if (cached && usable.includes(cached)) {
         usable.splice(usable.indexOf(cached), 1);
@@ -66,8 +65,10 @@ const Briefing = {
 
 1. **Start in den Tag** — ein kurzer Satz mit Datum und was heute ansteht.
 2. **Deine Termine** — die wichtigsten kommenden Termine als Stichpunkte (oder "freier Tag" falls keine).
-3. **Das Wichtigste aus den Nachrichten** — die 4–6 relevantesten Themen, jeweils ein Satz. Priorisiere: große Politik, Wirtschaft, Tech. Keine Belanglosigkeiten.
+3. **Das Wichtigste aus den Nachrichten** — die 4–6 relevantesten Themen, jeweils ein Satz. Priorisiere: große Politik, Wirtschaft, Tech, KI. Keine Belanglosigkeiten.
 4. **Ein Satz zum Mitnehmen** — Motivation oder Einordnung des Tages.
+
+Danach beantwortest du meine Rückfragen zu diesen Inhalten — kurz und auf Deutsch.
 
 Heute ist ${new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.
 
@@ -77,7 +78,7 @@ ${events || '(keine — Kalender nicht verbunden)'}
 NEWS (heute):
 ${news || '(keine News geladen)'}
 
-Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften der 4 Abschnitte, keine weiteren Markdown-Listen außer den Termin-Stichpunkten.`;
+Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften der 4 Abschnitte.`;
   },
 
   async callApi(model) {
@@ -87,7 +88,7 @@ Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: this.buildPrompt() }] }],
+          contents: this.history.map(h => ({ role: h.role, parts: [{ text: h.text }] })),
           generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
         })
       });
@@ -100,29 +101,68 @@ Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften 
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   },
 
-  async generate() {
-    const out = document.getElementById('ai-output');
-    if (!this.hasKey()) {
-      out.innerHTML = '<p class="muted">Für dein automatisches KI-Briefing: kostenlosen Key auf <b>aistudio.google.com/apikey</b> holen und in den Einstellungen (⚙) eintragen.</p>';
-      return;
-    }
-    out.innerHTML = '<div class="ai-loading"><div class="spinner"></div> Dein Briefing wird erstellt …</div>';
+  async send() {
+    if (this.busy) return;
+    this.busy = true;
+    const thinking = this.addMsg('model', '<div class="ai-loading"><div class="spinner"></div></div>', true);
     const models = await this.resolveModels();
     let lastErr = null;
+    let ok = false;
     for (const model of models) {
       try {
         const text = await this.callApi(model);
-        State.set('geminiModel', model); // Erfolgsmodell merken
-        out.innerHTML = this.mdToHtml(text);
-        return;
+        State.set('geminiModel', model);
+        this.history.push({ role: 'model', text });
+        thinking.remove();
+        this.addMsg('model', this.mdToHtml(text), true);
+        ok = true;
+        break;
       } catch (e) {
         lastErr = e;
-        // 400/404 = Modell nicht verfügbar → Cache leeren, nächstes probieren
         if (e.status === 400 || e.status === 404) State.set('geminiModel', '');
-        if (e.status !== 429 && e.status !== 400 && e.status !== 404) break; // echte Fehler sofort zeigen
+        if (e.status !== 429 && e.status !== 400 && e.status !== 404) break;
       }
     }
-    out.innerHTML = `<p class="muted">Fehler beim Briefing: ${News.esc(lastErr?.message || 'unbekannt')}<br>Prüfe deinen API-Key in den Einstellungen oder dein kostenloses Tageskontingent (setzt sich nachts zurück).</p>`;
+    if (!ok) {
+      thinking.remove();
+      this.history.pop(); // fehlgeschlagene User-Nachricht zurücknehmen
+      this.addMsg('model', `<p class="muted">Fehler: ${News.esc(lastErr?.message || 'unbekannt')}</p>`, true);
+    }
+    this.busy = false;
+  },
+
+  addMsg(role, html, raw = false) {
+    const box = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + (role === 'user' ? 'user' : 'model');
+    div.innerHTML = raw ? html : News.esc(html);
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  },
+
+  // Start: Briefing automatisch generieren
+  auto() {
+    if (this._ran) return;
+    this._ran = true;
+    const box = document.getElementById('chat-messages');
+    if (!this.hasKey()) {
+      box.innerHTML = '<div class="chat-msg model"><p class="muted">Für dein KI-Briefing: kostenlosen Key auf <b>aistudio.google.com/apikey</b> holen und in den Einstellungen (⚙) eintragen.</p></div>';
+      return;
+    }
+    this.history.push({ role: 'user', text: this.buildPrompt() });
+    this.send();
+  },
+
+  submitFollowup() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text || this.busy) return;
+    if (!this.hasKey()) { input.value = ''; return; }
+    input.value = '';
+    this.addMsg('user', text);
+    this.history.push({ role: 'user', text });
+    this.send();
   },
 
   mdToHtml(text) {
@@ -134,12 +174,11 @@ Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften 
       .join('');
   },
 
-  // Automatisch beim Laden der Seite generieren (einmal pro Besuch)
-  auto() {
-    if (this._ran) return;
-    this._ran = true;
-    this.generate();
-  },
-
-  init() { /* Briefing startet automatisch nach dem News-Laden */ }
+  init() {
+    const input = document.getElementById('chat-input');
+    document.getElementById('chat-send').addEventListener('click', () => this.submitFollowup());
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') this.submitFollowup();
+    });
+  }
 };

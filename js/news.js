@@ -1,170 +1,196 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aurora — Dein Morning Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
-<link rel="icon" href="icon-512.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Aurora">
-<meta name="theme-color" content="#0b0d12">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-</head>
-<body>
+/* ═══════════ News: Heise + Telepolis via RSS ═══════════ */
+const News = {
+  feeds: [
+    // Heise online News als Basis: IT + Wirtschaft + KI (per Keywords erkannt)
+    { url: 'https://www.heise.de/rss/heise-atom.xml',             src: 'Heise',       cat: 'tech' },
+    // Telepolis für Politik
+    { url: 'https://www.heise.de/tp/rss/news-atom.xml',           src: 'Telepolis',   cat: 'politik' },
+    // Tagesschau: kuratierte Top-Meldungen (Politik) + Wirtschafts-Ressort
+    { url: 'https://www.tagesschau.de/xml/rss2/',                 src: 'Tagesschau',  cat: 'politik', top: true },
+    { url: 'https://www.tagesschau.de/wirtschaft/index~rss2.xml', src: 'Tagesschau',  cat: 'wirtschaft' },
+    // Handelsblatt Schlagzeilen (Wirtschaft)
+    { url: 'https://www.handelsblatt.com/contentexport/feed/schlagzeilen', src: 'Handelsblatt', cat: 'wirtschaft' },
+  ],
+  // CORS-Proxies (Fallback-Kette) — xml = XML-Rohdaten, json = rss2json-API
+  proxies: [
+    { type: 'xml',  wrap: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u) },
+    { type: 'xml',  wrap: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u) },
+    { type: 'json', wrap: u => 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(u) },
+  ],
 
-<!-- ══════════ HEADER ══════════ -->
-<header class="topbar">
-  <div class="brand">
-    <div class="brand-dot"></div>
-    <span class="brand-name">AURORA</span>
-  </div>
-  <div class="topbar-actions">
-    <div class="clock" id="clock">--:--</div>
-    <button class="icon-btn" id="refresh-btn" title="Alles neu laden">↻</button>
-    <button class="icon-btn" id="focus-btn" title="Fokus-Modus">◉</button>
-    <button class="icon-btn" id="theme-btn" title="Theme wechseln">☾</button>
-    <button class="icon-btn" id="settings-btn" title="Einstellungen">⚙</button>
-  </div>
-</header>
+  ignoreWords: ['wetter', 'lotto', 'horoskop', 'rezept', 'quiz', 'spieltag', 'tv-tipp', 'promi'],
 
-<main>
+  // Aus Telepolis: reine Wissenschaft/Weltraum-Themen rausfiltern
+  skipTpWords: ['weltraum', 'raumfahrt', 'astronom', 'mars-mission', 'exoplanet'],
 
-  <div class="greeting-block">
-    <h1 id="greeting">Guten Morgen</h1>
-    <p class="date-line" id="date-line"></p>
-  </div>
+  // Tagesschau-Top-Feed: Sport/Kultur etc. rausfiltern
+  skipTopWords: [
+    'fussball', 'fußball', 'sport', 'olympia', 'bundesliga', 'champions league',
+    'formel', 'tennis', 'handball', 'biathlon', 'ski', 'tour de france',
+    'film', 'serie', 'musik', 'konzert', 'theater', 'literatur', 'festival',
+    'wetter', 'rezept', 'promi', 'lotto', 'horoskop', 'tatort', 'charts',
+  ],
 
-  <!-- ═══ KI-BRIEFING (volle Breite, ganz oben) ═══ -->
-  <div class="card ai-card">
-    <div class="card-head"><h2>KI-Briefing</h2></div>
-    <div id="ai-output" class="ai-output">
-      <div class="ai-loading"><div class="spinner"></div> Dein Briefing wird erstellt …</div>
-    </div>
-  </div>
+  // KI-Artikel erkennen (höchste Priorität bei der Einordnung)
+  kiKeywords: [
+    'künstliche intelligenz', ' ki ', 'ki-', ' ki:', 'chatgpt', 'openai',
+    'anthropic', 'claude', 'gemini', 'deepmind', 'sprachmodell', 'llm',
+    'mistral', 'copilot', ' ai ', ' ai-', ' ai:', 'generative', 'midjourney',
+    'maschinelles lernen', 'machine learning', 'ai-act', 'ai act',
+  ],
 
-  <!-- ═══ LAYOUT: Hauptspalte links / News-Rail rechts ═══ -->
-  <div class="layout">
+  // Heise-Artikel mit Wirtschaftsbezug → Kategorie Wirtschaft
+  wirtschaftKeywords: [
+    'börse', 'aktie', 'quartal', 'umsatz', 'gewinn', 'milliard', 'inflation',
+    'zins', 'ezb', 'fed', 'wirtschaft', 'übernahme', 'ipo', 'bilanz', 'dax',
+    'nasdaq', 'wall street', 'kursverlust', 'kursgewinn', 'stellenabbau', 'entlassung',
+  ],
 
-    <div class="col-main">
+  // Pro Kategorie nur die wichtigsten (neuesten) Meldungen
+  // Alle Artikel der Feeds anzeigen
+  caps: { politik: 25, wirtschaft: 25, tech: 30, ki: 20, all: 120 },
 
-      <!-- Termine -->
-      <div class="card" id="cal-connect-card">
-        <div class="card-head"><h2>Google Calendar</h2></div>
-        <p class="muted">Verbinde dein Google-Konto, um Termine, Geburtstage und Feiertage zu sehen.</p>
-        <button class="btn btn-accent" id="cal-connect">Mit Google verbinden</button>
-        <p class="muted small">Falls der Button nicht reagiert: Google Client ID in den Einstellungen prüfen.</p>
-      </div>
+  articles: [],
+  activeCat: 'all',
 
-      <div class="card hidden" id="cal-data-card">
-        <div class="card-head">
-          <h2>Termine</h2>
-          <div class="cal-views" id="cal-views">
-            <button class="chip active" data-calview="day">Tag</button>
-            <button class="chip" data-calview="week">Woche</button>
-            <button class="chip" data-calview="month">Monat</button>
-          </div>
+  // Gibt die Kategorie zurück — oder null, wenn der Artikel weg soll
+  categorize(feed, title, teaser) {
+    const hay = (' ' + title + ' ' + teaser + ' ').toLowerCase();
+    // KI hat Vorrang
+    if (this.kiKeywords.some(w => hay.includes(w))) return 'ki';
+    if (feed.top) {
+      // Tagesschau-Top: Sport/Kultur raus, Wirtschaft umkategorisieren, Rest = Politik
+      if (this.skipTopWords.some(w => hay.includes(w))) return null;
+      if (this.wirtschaftKeywords.some(w => hay.includes(w))) return 'wirtschaft';
+      return 'politik';
+    }
+    if (feed.cat === 'politik' && this.skipTpWords.some(w => hay.includes(w))) return null;
+    // Heise: Wirtschaftsartikel erkennen und umkategorisieren
+    if (feed.src === 'Heise' && this.wirtschaftKeywords.some(w => hay.includes(w))) return 'wirtschaft';
+    return feed.cat;
+  },
+
+  async fetchFeed(feed) {
+    for (const p of this.proxies) {
+      try {
+        const res = await fetch(p.wrap(feed.url), { signal: AbortSignal.timeout(12000) });
+        if (!res.ok) continue;
+        if (p.type === 'json') {
+          const data = await res.json();
+          if (data.status !== 'ok' || !Array.isArray(data.items)) continue;
+          return data.items.map(it => ({
+            title: this.clean(it.title),
+            link: it.link || '',
+            teaser: this.clean((it.description || '').replace(/<[^>]*>/g, '')).slice(0, 220),
+            date: new Date(it.pubDate || Date.now()),
+            src: feed.src,
+            cat: this.categorize(feed, it.title || '', it.description || ''),
+          }));
+        }
+        const text = await res.text();
+        const doc = new DOMParser().parseFromString(text, 'text/xml');
+        if (doc.querySelector('parsererror')) continue;
+        const items = this.parse(doc, feed);
+        if (items.length) return items;
+      } catch (e) { /* nächster Proxy */ }
+    }
+    return [];
+  },
+
+  parse(doc, feed) {
+    const items = [];
+    const add = (title, link, teaser, date) => {
+      items.push({ title: this.clean(title), link, teaser: this.clean(teaser),
+                   date, src: feed.src,
+                   cat: this.categorize(feed, title, teaser) });
+    };
+    // RSS
+    doc.querySelectorAll('item').forEach(it => {
+      add(
+        it.querySelector('title')?.textContent?.trim() || '',
+        it.querySelector('link')?.textContent?.trim() || '',
+        (it.querySelector('description')?.textContent || '').replace(/<[^>]*>/g, '').trim().slice(0, 220),
+        new Date(it.querySelector('pubDate')?.textContent || Date.now())
+      );
+    });
+    // Atom (Heise)
+    doc.querySelectorAll('entry').forEach(en => {
+      add(
+        en.querySelector('title')?.textContent?.trim() || '',
+        en.querySelector('link')?.getAttribute('href') || '',
+        (en.querySelector('summary')?.textContent || '').replace(/<[^>]*>/g, '').trim().slice(0, 220),
+        new Date(en.querySelector('updated, published')?.textContent || Date.now())
+      );
+    });
+    return items;
+  },
+
+  async load(force = false) {
+    if (this.articles.length && !force) { this.render(); return; }
+    const el = document.getElementById('news-list');
+    el.innerHTML = '<p class="muted">News werden geladen …</p>';
+    const lists = await Promise.all(this.feeds.map(f => this.fetchFeed(f)));
+    this.articles = lists.flat()
+      .filter(a => a.title && a.link && a.cat)
+      .filter(a => !this.ignoreWords.some(w => a.title.toLowerCase().includes(w)))
+      .sort((a, b) => b.date - a.date);
+    const seen = new Set();
+    this.articles = this.articles.filter(a => !seen.has(a.link) && seen.add(a.link));
+    this.render();
+    if (window.Briefing) Briefing.auto(); // Auto-Briefing, sobald News da sind
+  },
+
+  catLabel(cat) {
+    return { politik: 'Politik', wirtschaft: 'Wirtschaft', tech: 'Tech / IT', ki: 'KI' }[cat] || cat;
+  },
+
+  // Handelsblatt markiert Paywall-Artikel mit „+++“ — raus damit
+  clean(s) { return (s || '').replace(/\+\+\+/g, '').trim(); },
+
+  fmtDate(d) {
+    const now = new Date();
+    if (d.toDateString() === now.toDateString())
+      return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+  },
+
+  esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; },
+
+  articleHtml(a) {
+    return `
+      <a class="news-item" href="${a.link}" target="_blank" rel="noopener">
+        <div class="meta">
+          <span class="src-tag ${{ Heise: 'heise', Telepolis: 'tp', Handelsblatt: 'hb' }[a.src] || ''}">${a.src}</span>
+          <span class="cat-tag">${this.catLabel(a.cat)}</span>
+          <span>${this.fmtDate(new Date(a.date))}</span>
         </div>
-        <div id="cal-events" class="event-list"></div>
-        <div class="card-footer">
-          <button class="btn btn-ghost" id="cal-disconnect">Verbindung trennen</button>
-        </div>
-      </div>
+        <h3>${this.esc(a.title)}</h3>
+        ${a.teaser ? `<p class="teaser">${this.esc(a.teaser)}</p>` : ''}
+      </a>`;
+  },
 
-      <!-- Märkte -->
-      <div class="section-head"><h2>Märkte</h2></div>
-      <div class="card">
-        <div class="card-head">
-          <h2>Deine Watchlist</h2>
-        </div>
-        <div id="tv-watchlist" class="tv-box small"></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <h2>Wirtschaftskalender</h2>
-          <span class="muted small">ForexFactory · EUR & USD</span>
-        </div>
-        <div id="ff-calendar" class="ff-list">
-          <p class="muted">Wird geladen …</p>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head"><h2>Earnings & IPOs</h2></div>
-        <div id="tv-earnings" class="tv-box tall"></div>
-      </div>
+  setCat(cat) {
+    this.activeCat = cat;
+    document.querySelectorAll('#news-filters .chip[data-cat]').forEach(c =>
+      c.classList.toggle('active', c.dataset.cat === cat));
+    this.render();
+  },
 
-    </div>
+  render() {
+    const el = document.getElementById('news-list');
+    const list = this.activeCat === 'all'
+      ? this.articles.slice(0, this.caps.all)
+      : this.articles.filter(a => a.cat === this.activeCat).slice(0, this.caps[this.activeCat]);
+    if (!list.length) {
+      el.innerHTML = '<p class="muted">Keine Artikel gefunden. Prüfe deine Internetverbindung oder lade neu (↻ oben rechts).</p>';
+      return;
+    }
+    el.innerHTML = list.map(a => this.articleHtml(a)).join('');
+  },
 
-    <!-- News-Rail rechts -->
-    <aside class="col-news">
-      <div class="section-head">
-        <h2>News</h2>
-        <div class="filter-bar" id="news-filters">
-          <button class="chip active" data-cat="all">Alle</button>
-          <button class="chip" data-cat="politik">Politik</button>
-          <button class="chip" data-cat="wirtschaft">Wirtschaft</button>
-          <button class="chip" data-cat="tech">Tech / IT</button>
-          <button class="chip" data-cat="ki">KI</button>
-        </div>
-      </div>
-      <div id="news-list" class="news-list scrollable">
-        <p class="muted">News werden geladen …</p>
-      </div>
-    </aside>
-
-  </div>
-
-</main>
-
-<!-- ══════════ FOKUS-MODUS ══════════ -->
-<div id="focus-overlay" class="hidden">
-  <button class="icon-btn focus-exit" id="focus-exit">✕</button>
-  <div class="focus-clock" id="focus-clock">--:--</div>
-  <div class="focus-next" id="focus-next"></div>
-</div>
-
-<!-- ══════════ EINSTELLUNGEN ══════════ -->
-<div id="settings-overlay" class="hidden">
-  <div class="settings-panel">
-    <div class="card-head">
-      <h2>Einstellungen</h2>
-      <button class="icon-btn" id="settings-close">✕</button>
-    </div>
-
-    <div class="settings-section">
-      <h3>Google Calendar</h3>
-      <label>Google Client ID <span class="muted small">(aus Google Cloud Console)</span></label>
-      <input type="text" id="set-gclient" placeholder="xxxx.apps.googleusercontent.com">
-      <p class="muted small">Cloud Console → Calendar API aktivieren → OAuth-Client (Web) → deine GitHub-Pages-URL als Authorized JavaScript Origin.</p>
-    </div>
-
-    <div class="settings-section">
-      <h3>KI-Briefing (Gemini)</h3>
-      <label>Gemini API-Key <span class="muted small">(kostenlos: aistudio.google.com/apikey)</span></label>
-      <input type="password" id="set-gemini" placeholder="AIza...">
-      <p class="muted small">Das passende Modell wird automatisch gewählt.</p>
-    </div>
-
-    <div class="settings-section">
-      <h3>Darstellung</h3>
-      <label class="row"><input type="checkbox" id="set-autotheme" checked> Automatisch nach System (hell/dunkel)</label>
-    </div>
-
-    <button class="btn btn-accent full" id="settings-save">Speichern</button>
-    <p class="muted small center">Alle Daten bleiben lokal in deinem Browser.</p>
-  </div>
-</div>
-
-<script src="js/state.js"></script>
-<script src="js/news.js"></script>
-<script src="js/markets.js"></script>
-<script src="js/calendar.js"></script>
-<script src="js/briefing.js"></script>
-<script src="js/app.js"></script>
-</body>
-</html>
+  init() {
+    document.querySelectorAll('#news-filters .chip[data-cat]').forEach(c =>
+      c.addEventListener('click', () => this.setCat(c.dataset.cat)));
+    this.load();
+  }
+};

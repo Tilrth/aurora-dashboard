@@ -38,7 +38,7 @@ const State = {
     const cur = document.documentElement.getAttribute('data-theme');
     this.set('theme', cur === 'dark' ? 'light' : 'dark');
     this.applyTheme();
-    if (window.Markets) Markets.rebuild(); // TradingView-Widgets ans Theme anpassen
+    if (window.Markets) Markets.rebuild(); // Module ans Theme anpassen
   }
 };
 
