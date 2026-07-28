@@ -15,6 +15,18 @@ const Briefing = {
   hasKey() { return !!State.get('gemini'); },
 
   async resolveModels() {
+    // Cache: Modell-Liste 24h behalten → spart einen API-Call pro Briefing
+    const cachedList = State.get('geminiModels');
+    const cachedTs = State.get('geminiModelsTs') || 0;
+    if (cachedList && Date.now() - cachedTs < 24 * 3600 * 1000) {
+      const cached = State.get('geminiModel');
+      const list = [...cachedList];
+      if (cached && list.includes(cached)) {
+        list.splice(list.indexOf(cached), 1);
+        list.unshift(cached);
+      }
+      return list;
+    }
     const key = State.get('gemini');
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}&pageSize=100`);
@@ -33,6 +45,8 @@ const Briefing = {
         return s;
       };
       usable.sort((a, b) => score(b) - score(a));
+      State.set('geminiModels', usable);
+      State.set('geminiModelsTs', Date.now());
       const cached = State.get('geminiModel');
       if (cached && usable.includes(cached)) {
         usable.splice(usable.indexOf(cached), 1);
@@ -119,7 +133,10 @@ Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften 
         break;
       } catch (e) {
         lastErr = e;
-        if (e.status === 400 || e.status === 404) State.set('geminiModel', '');
+        if (e.status === 400 || e.status === 404) {
+          State.set('geminiModel', '');
+          State.set('geminiModels', null); // Liste beim nächsten Mal neu auflösen
+        }
         if (e.status !== 429 && e.status !== 400 && e.status !== 404) break;
       }
     }
