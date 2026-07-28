@@ -78,7 +78,7 @@ const Briefing = {
     return `Du bist mein persönlicher Morgen-Assistent. Erstelle ein kurzes, prägnantes Morgen-Briefing auf Deutsch (max. 180 Wörter), in diesem Aufbau:
 
 1. **Start in den Tag** — ein kurzer Satz mit Datum und was heute ansteht.
-2. **Deine Termine** — die wichtigsten kommenden Termine als Stichpunkte (oder "freier Tag" falls keine).
+2. **Deine Termine** — die wichtigsten kommenden Termine als Stichpunkte (falls keine anstehen, einfach sachlich erwähnen).
 3. **Das Wichtigste aus den Nachrichten** — die 4–6 relevantesten Themen, jeweils ein Satz. Priorisiere: große Politik, Wirtschaft, Tech, KI. Keine Belanglosigkeiten.
 4. **Ein Satz zum Mitnehmen** — Motivation oder Einordnung des Tages.
 
@@ -101,6 +101,7 @@ Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften 
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(30000),  // hängende Anfragen nach 30s abbrechen
         body: JSON.stringify({
           contents: this.history.map(h => ({ role: h.role, parts: [{ text: h.text }] })),
           generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
@@ -137,7 +138,8 @@ Antworte im Fließtext mit klaren Absätzen, nutze **fett** für Überschriften 
           State.set('geminiModel', '');
           State.set('geminiModels', null); // Liste beim nächsten Mal neu auflösen
         }
-        if (e.status !== 429 && e.status !== 400 && e.status !== 404) break;
+        // Bei Timeout/Netzwerkfehler (kein Status) ebenfalls nächstes Modell probieren
+        if (e.status && e.status !== 429 && e.status !== 400 && e.status !== 404) break;
       }
     }
     if (!ok) {
