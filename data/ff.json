@@ -1,50 +1,41 @@
 {
  "events": [
   {
-   "title": "Federal Funds Rate",
+   "title": "ISM Manufacturing PMI",
    "currency": "USD",
    "impact": "High",
-   "date": "07-29-2026",
-   "forecast": "3.75%",
-   "previous": "3.75%",
-   "utc": "2026-07-29T22:00:00+00:00"
+   "date": "08-03-2026",
+   "forecast": "54.0",
+   "previous": "53.3",
+   "utc": "2026-08-03T18:00:00+00:00"
   },
   {
-   "title": "FOMC Statement",
+   "title": "Average Hourly Earnings m/m",
    "currency": "USD",
    "impact": "High",
-   "date": "07-29-2026",
-   "forecast": "",
-   "previous": "",
-   "utc": "2026-07-29T22:00:00+00:00"
-  },
-  {
-   "title": "FOMC Press Conference",
-   "currency": "USD",
-   "impact": "High",
-   "date": "07-29-2026",
-   "forecast": "",
-   "previous": "",
-   "utc": "2026-07-29T22:30:00+00:00"
-  },
-  {
-   "title": "Advance GDP q/q",
-   "currency": "USD",
-   "impact": "High",
-   "date": "07-30-2026",
-   "forecast": "2.1%",
-   "previous": "2.0%",
-   "utc": "2026-07-30T16:30:00+00:00"
-  },
-  {
-   "title": "Core PCE Price Index m/m",
-   "currency": "USD",
-   "impact": "High",
-   "date": "07-30-2026",
-   "forecast": "0.2%",
+   "date": "08-07-2026",
+   "forecast": "0.3%",
    "previous": "0.3%",
-   "utc": "2026-07-30T16:30:00+00:00"
+   "utc": "2026-08-07T16:30:00+00:00"
+  },
+  {
+   "title": "Non-Farm Employment Change",
+   "currency": "USD",
+   "impact": "High",
+   "date": "08-07-2026",
+   "forecast": "88K",
+   "previous": "57K",
+   "utc": "2026-08-07T16:30:00+00:00"
+  },
+  {
+   "title": "Unemployment Rate",
+   "currency": "USD",
+   "impact": "High",
+   "date": "08-07-2026",
+   "forecast": "4.2%",
+   "previous": "4.2%",
+   "utc": "2026-08-07T16:30:00+00:00"
   }
  ],
- "updated": "2026-07-31T21:52:15.967670+00:00"
+ "updated": "2026-08-03T15:59:23.672330+00:00"
 }
