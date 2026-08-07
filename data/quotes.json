@@ -4,38 +4,38 @@
   {
    "name": "World Momentum",
    "symbol": "XDEM",
-   "price": 84.68,
+   "price": 84.74,
    "currency": "EUR",
-   "change_pct": 2.57
+   "change_pct": 2.64
   },
   {
    "name": "China",
    "symbol": "H4Z6",
-   "price": 7.5,
+   "price": 7.51,
    "currency": "EUR",
-   "change_pct": 0.81
+   "change_pct": 0.91
   },
   {
    "name": "Europe Momentum",
    "symbol": "CEMR",
    "price": 16.04,
    "currency": "EUR",
-   "change_pct": 1.28
+   "change_pct": 1.26
   },
   {
    "name": "Taiwan",
    "symbol": "FLXT",
-   "price": 58.83,
+   "price": 58.81,
    "currency": "EUR",
-   "change_pct": 5.52
+   "change_pct": 5.49
   },
   {
    "name": "Korea",
    "symbol": "FLXK",
-   "price": 80.02,
+   "price": 80.04,
    "currency": "EUR",
-   "change_pct": 4.41
+   "change_pct": 4.44
   }
  ],
- "updated": "2026-08-07T10:35:48.496506+00:00"
+ "updated": "2026-08-07T11:31:52.475559+00:00"
 }
